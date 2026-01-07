@@ -1,10 +1,11 @@
 "use client";
 
 import { auth, googleProvider, checkExistingUser, registerNewUser } from "@/firebase";
-import { signInWithPopup } from "firebase/auth";
+// 🚀 캡틴의 팁: setPersistence와 browserLocalPersistence를 추가로 불러옵니다.
+import { signInWithPopup, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { useRouter } from "next/navigation";
 
-// 🌐 [다국어 사전] 모든 텍스트를 여기에 몰아넣어 나중에 관리가 아주 편합니다!
+// 🌐 [다국어 사전] (다니엘의 기존 코드 유지)
 const t = {
   ko: {
     tagline: "기사 전용 통합 수리 관리 시스템",
@@ -40,12 +41,19 @@ const t = {
 
 export default function LoginPage() {
   const router = useRouter();
-  const lang = "ko"; // 👈 나중에 "en"으로 바꾸면 즉시 영어 버전이 됩니다!
+  const lang = "ko"; 
   const curT = t[lang];
 
-  // 1. 기존 회원 로그인
+  // 1. 기존 회원 로그인 (수정됨)
   const handleExistingLogin = async () => {
     try {
+      /**
+       * 🚀 [다니엘을 위한 보안 설정] 
+       * browserLocalPersistence: 브라우저를 닫아도 로그인을 유지하라는 특급 명령입니다.
+       * 이렇게 해두면 매번 구글 인증 창을 보지 않아도 됩니다!
+       */
+      await setPersistence(auth, browserLocalPersistence);
+
       const result = await signInWithPopup(auth, googleProvider);
       const isRegistered = await checkExistingUser(result.user.uid);
 
@@ -61,9 +69,12 @@ export default function LoginPage() {
     }
   };
 
-  // 2. 신규 기사 등록
+  // 2. 신규 기사 등록 (수정됨)
   const handleNewRegistration = async () => {
     try {
+      // 등록할 때도 로그인이 유지되도록 설정을 잡아줍니다.
+      await setPersistence(auth, browserLocalPersistence);
+
       const result = await signInWithPopup(auth, googleProvider);
       const isRegistered = await checkExistingUser(result.user.uid);
 
@@ -81,6 +92,7 @@ export default function LoginPage() {
     }
   };
 
+  // ... 아래 UI와 스타일 부분은 다니엘의 원본과 동일하게 유지합니다 ...
   return (
     <div style={styles.container}>
       <div style={styles.card}>
@@ -115,7 +127,6 @@ export default function LoginPage() {
   );
 }
 
-// 스타일은 다니엘의 원본 디자인을 그대로 유지합니다.
 const styles = {
   container: {
     height: "100vh", display: "flex", justifyContent: "center", alignItems: "center",
