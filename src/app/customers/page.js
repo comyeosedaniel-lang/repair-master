@@ -85,12 +85,15 @@ export default function CustomerPage() {
     }
   };
 
+  // 💾 고객 정보 저장 로직 수정
   const handleSave = () => {
+    // 1. 유효성 검사: 이름과 전화번호는 필수입니다.
     const minPhoneLength = curT.usePhoneFilter ? 13 : 1; 
     if (!newCustomer.name || newCustomer.phone.length < minPhoneLength) {
-      return alert(curT.alerts?.inputError);
+      return alert(curT.alerts?.inputError || "정보를 정확히 입력해주세요.");
     }
     
+    // 2. 보안 데이터 생성 (다니엘의 암호화 방식 유지) [cite: 2026-01-03]
     const secureEntry = {
       id: `c_${Date.now()}`, 
       n: encrypt(newCustomer.name),
@@ -100,10 +103,33 @@ export default function CustomerPage() {
       d: encrypt(new Date().toLocaleString())
     };
 
-    const currentRaw = JSON.parse(localStorage.getItem("c_data") || "[]");
-    localStorage.setItem("c_data", JSON.stringify([secureEntry, ...currentRaw]));
-    alert(curT.alerts?.saveSuccess || "저장되었습니다.");
-    window.location.reload();
+    try {
+      // 3. 폰(localStorage)에서 기존 데이터를 가져옵니다. [cite: 2026-01-06]
+      const currentRaw = JSON.parse(localStorage.getItem("c_data") || "[]");
+      const updatedRaw = [secureEntry, ...currentRaw];
+      
+      // 4. 새 목록을 저장합니다.
+      localStorage.setItem("c_data", JSON.stringify(updatedRaw));
+
+      // 5. 🚀 [중요] 화면을 새로고침하지 않고 리스트를 즉시 업데이트합니다. [cite: 2026-01-03]
+      const newDisplayItem = {
+        id: secureEntry.id,
+        name: newCustomer.name,
+        phone: newCustomer.phone,
+        email: newCustomer.email,
+        address: `${newCustomer.address} ${newCustomer.detailAddress}`.trim(),
+        date: new Date().toLocaleString()
+      };
+      setMyCustomers([newDisplayItem, ...myCustomers]);
+
+      // 6. 입력창 비우기
+      setNewCustomer({ name: "", phone: "", email: "", address: "", detailAddress: "" });
+      alert(curT.alerts?.saveSuccess || "다니엘의 폰에 안전하게 저장되었습니다! ✅");
+
+    } catch (error) {
+      console.error("저장 중 오류 발생:", error);
+      alert("저장 공간이 부족하거나 오류가 발생했습니다.");
+    }
   };
 
   return (
